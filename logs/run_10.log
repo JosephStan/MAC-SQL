@@ -1,0 +1,1231 @@
+
+********************
+
+
+Your task is to decompose the question into logical steps and generate SQL subqueries that are simple, flat, and avoid unnecessary nested structures.
+
+UPDATED RULES:
+1. DO NOT use EXISTS or NOT EXISTS unless absolutely required.
+2. Prefer JOIN + GROUP BY over nested subqueries.
+3. Avoid deep nesting (more than 1 level).
+4. Preserve logical quantifiers:
+   - "for every X there exists Y" ≠ "there exists X and Y"
+   - Keep universally-quantified logic correct.
+5. Return BOTH:
+   (a) sub-questions (in natural language)
+   (b) subqueries (SQL draft)
+6. Each subquery must be executable independently.
+
+Output Format:
+{
+  "sub_questions": [
+      "sub question 1 ...",
+      "sub question 2 ..."
+  ],
+  "sub_queries": [
+      "SELECT ...",
+      "SELECT ..."
+  ],
+  "final_plan": "How these steps combine into the final SQL"
+}
+
+Example:
+Question: Find singers older than the youngest French singer.
+
+Output:
+{
+  "sub_questions": [
+      "Find the age of the youngest French singer",
+      "Select all singers older than that age"
+  ],
+  "sub_queries": [
+      "SELECT MIN(Age) FROM singer WHERE Country = 'France'",
+      "SELECT Name FROM singer WHERE Age > (subquery1_result)"
+  ],
+  "final_plan": "Use subquery1 to filter singers in subquery2"
+}
+
+==========
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+【Question】
+How many singers do we have?
+
+Now produce the structured decomposition.
+
+
+====================
+
+{
+  "sub_questions": [
+      "Count the number of unique singers"
+  ],
+  "sub_queries": [
+      "SELECT COUNT(DISTINCT Singer_ID) FROM singer"
+  ],
+  "final_plan": "The subquery directly gives the final answer"
+}
+
+ prompt_token,response_token: 958 55
+
+
+ total_prompt_tokens,total_response_tokens: 958 55
+
+
+********************
+
+
+Your task is to decompose the question into logical steps and generate SQL subqueries that are simple, flat, and avoid unnecessary nested structures.
+
+UPDATED RULES:
+1. DO NOT use EXISTS or NOT EXISTS unless absolutely required.
+2. Prefer JOIN + GROUP BY over nested subqueries.
+3. Avoid deep nesting (more than 1 level).
+4. Preserve logical quantifiers:
+   - "for every X there exists Y" ≠ "there exists X and Y"
+   - Keep universally-quantified logic correct.
+5. Return BOTH:
+   (a) sub-questions (in natural language)
+   (b) subqueries (SQL draft)
+6. Each subquery must be executable independently.
+
+Output Format:
+{
+  "sub_questions": [
+      "sub question 1 ...",
+      "sub question 2 ..."
+  ],
+  "sub_queries": [
+      "SELECT ...",
+      "SELECT ..."
+  ],
+  "final_plan": "How these steps combine into the final SQL"
+}
+
+Example:
+Question: Find singers older than the youngest French singer.
+
+Output:
+{
+  "sub_questions": [
+      "Find the age of the youngest French singer",
+      "Select all singers older than that age"
+  ],
+  "sub_queries": [
+      "SELECT MIN(Age) FROM singer WHERE Country = 'France'",
+      "SELECT Name FROM singer WHERE Age > (subquery1_result)"
+  ],
+  "final_plan": "Use subquery1 to filter singers in subquery2"
+}
+
+==========
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+【Question】
+What is the total number of singers?
+
+Now produce the structured decomposition.
+
+
+====================
+
+{
+  "sub_questions": [
+      "Count the total number of unique singers"
+  ],
+  "sub_queries": [
+      "SELECT COUNT(DISTINCT Singer_ID) FROM singer"
+  ],
+  "final_plan": "The subquery gives the total number of unique singers in the singer table"
+}
+
+ prompt_token,response_token: 959 62
+
+
+ total_prompt_tokens,total_response_tokens: 1917 117
+
+
+********************
+
+
+Your task is to decompose the question into logical steps and generate SQL subqueries that are simple, flat, and avoid unnecessary nested structures.
+
+UPDATED RULES:
+1. DO NOT use EXISTS or NOT EXISTS unless absolutely required.
+2. Prefer JOIN + GROUP BY over nested subqueries.
+3. Avoid deep nesting (more than 1 level).
+4. Preserve logical quantifiers:
+   - "for every X there exists Y" ≠ "there exists X and Y"
+   - Keep universally-quantified logic correct.
+5. Return BOTH:
+   (a) sub-questions (in natural language)
+   (b) subqueries (SQL draft)
+6. Each subquery must be executable independently.
+
+Output Format:
+{
+  "sub_questions": [
+      "sub question 1 ...",
+      "sub question 2 ..."
+  ],
+  "sub_queries": [
+      "SELECT ...",
+      "SELECT ..."
+  ],
+  "final_plan": "How these steps combine into the final SQL"
+}
+
+Example:
+Question: Find singers older than the youngest French singer.
+
+Output:
+{
+  "sub_questions": [
+      "Find the age of the youngest French singer",
+      "Select all singers older than that age"
+  ],
+  "sub_queries": [
+      "SELECT MIN(Age) FROM singer WHERE Country = 'France'",
+      "SELECT Name FROM singer WHERE Age > (subquery1_result)"
+  ],
+  "final_plan": "Use subquery1 to filter singers in subquery2"
+}
+
+==========
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+【Question】
+Show name, country, age for all singers ordered by age from the oldest to the youngest.
+
+Now produce the structured decomposition.
+
+
+====================
+
+{
+  "sub_questions": [
+      "Select all singers with their name, country, and age"
+  ],
+  "sub_queries": [
+      "SELECT Name, Country, Age FROM singer"
+  ],
+  "final_plan": "Order the result of the subquery by age in descending order"
+}
+
+ prompt_token,response_token: 970 62
+
+
+ total_prompt_tokens,total_response_tokens: 2887 179
+
+
+********************
+
+
+Your task is to decompose the question into logical steps and generate SQL subqueries that are simple, flat, and avoid unnecessary nested structures.
+
+UPDATED RULES:
+1. DO NOT use EXISTS or NOT EXISTS unless absolutely required.
+2. Prefer JOIN + GROUP BY over nested subqueries.
+3. Avoid deep nesting (more than 1 level).
+4. Preserve logical quantifiers.
+5. Produce:
+   • sub-questions (natural language)
+   • subqueries (SQL)
+   • final SQL (in a ```sql code block)
+
+Output Format MUST END WITH final SQL:
+Sub-questions:
+1. ...
+2. ...
+
+Subqueries:
+1. SELECT ...
+2. SELECT ...
+
+Final SQL:
+```sql
+SELECT ...
+
+==========
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+【Question】
+How many singers do we have?
+
+Now produce the structured decomposition.
+
+
+====================
+
+Sub-questions:
+1. Count the number of unique singer IDs in the singer table.
+
+Subqueries:
+1. SELECT COUNT(DISTINCT Singer_ID) FROM singer
+
+Final SQL:
+```sql
+SELECT COUNT(DISTINCT Singer_ID) AS Number_of_Singers FROM singer
+```
+
+ prompt_token,response_token: 800 57
+
+
+ total_prompt_tokens,total_response_tokens: 800 57
+
+
+********************
+
+
+Your task is to decompose the question into logical reasoning steps and generate SQL subqueries.
+Each subquery must be executable independently.
+
+UPDATED RULES:
+1. DO NOT use EXISTS / NOT EXISTS unless absolutely necessary.
+2. Prefer JOIN + GROUP BY instead of subqueries.
+3. Avoid more than 1 level of nesting.
+4. Preserve logical quantifiers correctly.
+5. You MUST output valid JSON only. No commentary.
+
+Valid Output JSON Format:
+{
+  "sub_questions": ["...", "..."],
+  "sub_queries": ["SELECT ...", "SELECT ..."],
+  "final_sql": "SELECT ..."
+}
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+
+【Question】
+How many singers do we have?
+
+Return ONLY valid JSON. No SQL fences. No extra text.
+
+
+====================
+
+{
+  "sub_questions": ["Count the number of unique singers."],
+  "sub_queries": ["SELECT COUNT(DISTINCT Singer_ID) FROM singer"],
+  "final_sql": "SELECT COUNT(DISTINCT Singer_ID) FROM singer"
+}
+
+ prompt_token,response_token: 783 50
+
+
+ total_prompt_tokens,total_response_tokens: 783 50
+
+
+********************
+
+
+Your task is to decompose the question into logical reasoning steps and generate SQL subqueries.
+Each subquery must be executable independently.
+
+UPDATED RULES:
+1. DO NOT use EXISTS / NOT EXISTS unless absolutely necessary.
+2. Prefer JOIN + GROUP BY instead of subqueries.
+3. Avoid more than 1 level of nesting.
+4. Preserve logical quantifiers correctly.
+5. You MUST output valid JSON only. No commentary.
+
+Valid Output JSON Format:
+{
+  "sub_questions": ["...", "..."],
+  "sub_queries": ["SELECT ...", "SELECT ..."],
+  "final_sql": "SELECT ..."
+}
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+
+【Question】
+What is the total number of singers?
+
+Return ONLY valid JSON. No SQL fences. No extra text.
+
+
+====================
+
+{
+  "sub_questions": ["Count the total number of singers"],
+  "sub_queries": ["SELECT COUNT(*) FROM singer"],
+  "final_sql": "SELECT COUNT(*) FROM singer"
+}
+
+ prompt_token,response_token: 784 39
+
+
+ total_prompt_tokens,total_response_tokens: 1567 89
+
+
+********************
+
+
+Your task is to decompose the question into logical reasoning steps and generate SQL subqueries.
+Each subquery must be executable independently.
+
+UPDATED RULES:
+1. DO NOT use EXISTS / NOT EXISTS unless absolutely necessary.
+2. Prefer JOIN + GROUP BY instead of subqueries.
+3. Avoid more than 1 level of nesting.
+4. Preserve logical quantifiers correctly.
+5. You MUST output valid JSON only. No commentary.
+
+Valid Output JSON Format:
+{
+  "sub_questions": ["...", "..."],
+  "sub_queries": ["SELECT ...", "SELECT ..."],
+  "final_sql": "SELECT ..."
+}
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+
+【Question】
+Show name, country, age for all singers ordered by age from the oldest to the youngest.
+
+Return ONLY valid JSON. No SQL fences. No extra text.
+
+
+====================
+
+{
+  "sub_questions": ["Get all singers' information including name, country, and age."],
+  "sub_queries": ["SELECT Name, Country, Age FROM singer"],
+  "final_sql": "SELECT Name, Country, Age FROM singer ORDER BY Age DESC"
+}
+
+ prompt_token,response_token: 795 56
+
+
+ total_prompt_tokens,total_response_tokens: 2362 145
+
+
+********************
+
+
+Your task is to decompose the question into logical reasoning steps and generate SQL subqueries.
+Each subquery must be executable independently.
+
+UPDATED RULES:
+1. DO NOT use EXISTS / NOT EXISTS unless absolutely necessary.
+2. Prefer JOIN + GROUP BY instead of subqueries.
+3. Avoid more than 1 level of nesting.
+4. Preserve logical quantifiers correctly.
+5. You MUST output valid JSON only. No commentary.
+
+Valid Output JSON Format:
+{
+  "sub_questions": ["...", "..."],
+  "sub_queries": ["SELECT ...", "SELECT ..."],
+  "final_sql": "SELECT ..."
+}
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+
+【Question】
+What are the names, countries, and ages for every singer in descending order of age?
+
+Return ONLY valid JSON. No SQL fences. No extra text.
+
+
+====================
+
+{
+  "sub_questions": ["What are the names, countries, and ages for every singer?"],
+  "sub_queries": ["SELECT Name, Country, Age FROM singer"],
+  "final_sql": "SELECT Name, Country, Age FROM singer ORDER BY Age DESC"
+}
+
+ prompt_token,response_token: 794 56
+
+
+ total_prompt_tokens,total_response_tokens: 3156 201
+
+
+********************
+
+
+Your task is to decompose the question into logical reasoning steps and generate SQL subqueries.
+Each subquery must be executable independently.
+
+UPDATED RULES:
+1. DO NOT use EXISTS / NOT EXISTS unless absolutely necessary.
+2. Prefer JOIN + GROUP BY instead of subqueries.
+3. Avoid more than 1 level of nesting.
+4. Preserve logical quantifiers correctly.
+5. You MUST output valid JSON only. No commentary.
+
+Valid Output JSON Format:
+{
+  "sub_questions": ["...", "..."],
+  "sub_queries": ["SELECT ...", "SELECT ..."],
+  "final_sql": "SELECT ..."
+}
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+
+【Question】
+What is the average, minimum, and maximum age of all singers from France?
+
+Return ONLY valid JSON. No SQL fences. No extra text.
+
+
+====================
+
+{
+  "sub_questions": ["Find all singers from France"],
+  "sub_queries": ["SELECT Singer_ID, Age FROM singer WHERE Country = 'France'"],
+  "final_sql": "SELECT AVG(Age) as Average_Age, MIN(Age) as Minimum_Age, MAX(Age) as Maximum_Age FROM (SELECT Singer_ID, Age FROM singer WHERE Country = 'France') as French_Singers"
+}
+
+ prompt_token,response_token: 792 87
+
+
+ total_prompt_tokens,total_response_tokens: 3948 288
+
+
+********************
+
+
+Your task is to decompose the question into logical reasoning steps and generate SQL subqueries.
+Each subquery must be executable independently.
+
+UPDATED RULES:
+1. DO NOT use EXISTS / NOT EXISTS unless absolutely necessary.
+2. Prefer JOIN + GROUP BY instead of subqueries.
+3. Avoid more than 1 level of nesting.
+4. Preserve logical quantifiers correctly.
+5. You MUST output valid JSON only. No commentary.
+
+Valid Output JSON Format:
+{
+  "sub_questions": ["...", "..."],
+  "sub_queries": ["SELECT ...", "SELECT ..."],
+  "final_sql": "SELECT ..."
+}
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+
+【Question】
+What is the average, minimum, and maximum age for all French singers?
+
+Return ONLY valid JSON. No SQL fences. No extra text.
+
+
+====================
+
+{
+  "sub_questions": ["Find all French singers"],
+  "sub_queries": ["SELECT Singer_ID, Age FROM singer WHERE Country = 'France'"],
+  "final_sql": "SELECT AVG(Age) as Average_Age, MIN(Age) as Minimum_Age, MAX(Age) as Maximum_Age FROM (SELECT Singer_ID, Age FROM singer WHERE Country = 'France') as French_Singers"
+}
+
+ prompt_token,response_token: 791 86
+
+
+ total_prompt_tokens,total_response_tokens: 4739 374
+
+
+********************
+
+
+Your task is to decompose the question into logical reasoning steps and generate SQL subqueries.
+Each subquery must be executable independently.
+
+UPDATED RULES:
+1. DO NOT use EXISTS / NOT EXISTS unless absolutely necessary.
+2. Prefer JOIN + GROUP BY instead of subqueries.
+3. Avoid more than 1 level of nesting.
+4. Preserve logical quantifiers correctly.
+5. You MUST output valid JSON only. No commentary.
+
+Valid Output JSON Format:
+{
+  "sub_questions": ["...", "..."],
+  "sub_queries": ["SELECT ...", "SELECT ..."],
+  "final_sql": "SELECT ..."
+}
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+
+【Question】
+Show the name and the release year of the song by the youngest singer.
+
+Return ONLY valid JSON. No SQL fences. No extra text.
+
+
+====================
+
+{
+  "sub_questions": [
+    "Find the youngest singer's age.",
+    "Find the youngest singer's ID.",
+    "Find the song name and release year of the youngest singer."
+  ],
+  "sub_queries": [
+    "SELECT MIN(Age) AS Min_Age FROM singer",
+    "SELECT Singer_ID FROM singer WHERE Age = (SELECT MIN(Age) FROM singer)",
+    "SELECT Song_Name, Song_release_year FROM singer WHERE Singer_ID = (SELECT Singer_ID FROM singer WHERE Age = (SELECT MIN(Age) FROM singer))"
+  ],
+  "final_sql": "SELECT Song_Name, Song_release_year FROM singer WHERE Singer_ID = (SELECT Singer_ID FROM singer WHERE Age = (SELECT MIN(Age) FROM singer))"
+}
+
+ prompt_token,response_token: 791 153
+
+
+ total_prompt_tokens,total_response_tokens: 5530 527
+
+
+********************
+
+
+Your task is to decompose the question into logical reasoning steps and generate SQL subqueries.
+Each subquery must be executable independently.
+
+UPDATED RULES:
+1. DO NOT use EXISTS / NOT EXISTS unless absolutely necessary.
+2. Prefer JOIN + GROUP BY instead of subqueries.
+3. Avoid more than 1 level of nesting.
+4. Preserve logical quantifiers correctly.
+5. You MUST output valid JSON only. No commentary.
+
+Valid Output JSON Format:
+{
+  "sub_questions": ["...", "..."],
+  "sub_queries": ["SELECT ...", "SELECT ..."],
+  "final_sql": "SELECT ..."
+}
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+
+【Question】
+What are the names and release years for all the songs of the youngest singer?
+
+Return ONLY valid JSON. No SQL fences. No extra text.
+
+
+====================
+
+{
+  "sub_questions": ["Who is the youngest singer?", "What are the names and release years of all the songs of the youngest singer?"],
+  "sub_queries": ["SELECT MIN(Age), Name FROM singer", "SELECT Song_Name, Song_release_year FROM singer WHERE Age = (SELECT MIN(Age) FROM singer)"],
+  "final_sql": "SELECT Song_Name, Song_release_year FROM singer WHERE Name = (SELECT Name FROM singer WHERE Age = (SELECT MIN(Age) FROM singer))"
+}
+
+ prompt_token,response_token: 792 105
+
+
+ total_prompt_tokens,total_response_tokens: 6322 632
+
+
+********************
+
+
+Your task is to decompose the question into logical reasoning steps and generate SQL subqueries.
+Each subquery must be executable independently.
+
+UPDATED RULES:
+1. DO NOT use EXISTS / NOT EXISTS unless absolutely necessary.
+2. Prefer JOIN + GROUP BY instead of subqueries.
+3. Avoid more than 1 level of nesting.
+4. Preserve logical quantifiers correctly.
+5. You MUST output valid JSON only. No commentary.
+
+Valid Output JSON Format:
+{
+  "sub_questions": ["...", "..."],
+  "sub_queries": ["SELECT ...", "SELECT ..."],
+  "final_sql": "SELECT ..."
+}
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+
+【Question】
+What are all distinct countries where singers above age 20 are from?
+
+Return ONLY valid JSON. No SQL fences. No extra text.
+
+
+====================
+
+{
+  "sub_questions": ["Find all singers who are above age 20"],
+  "sub_queries": ["SELECT DISTINCT Country FROM singer WHERE Age > 20"],
+  "final_sql": "SELECT DISTINCT Country FROM singer WHERE Age > 20"
+}
+
+ prompt_token,response_token: 790 52
+
+
+ total_prompt_tokens,total_response_tokens: 7112 684
+
+
+********************
+
+
+Your task is to decompose the question into logical reasoning steps and generate SQL subqueries.
+Each subquery must be executable independently.
+
+UPDATED RULES:
+1. DO NOT use EXISTS / NOT EXISTS unless absolutely necessary.
+2. Prefer JOIN + GROUP BY instead of subqueries.
+3. Avoid more than 1 level of nesting.
+4. Preserve logical quantifiers correctly.
+5. You MUST output valid JSON only. No commentary.
+
+Valid Output JSON Format:
+{
+  "sub_questions": ["...", "..."],
+  "sub_queries": ["SELECT ...", "SELECT ..."],
+  "final_sql": "SELECT ..."
+}
+
+【Database schema】
+# Table: stadium
+[
+  (Stadium_ID, stadium id.),
+  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
+  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
+  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
+  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
+  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
+  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
+]
+# Table: singer
+[
+  (Singer_ID, singer id.),
+  (Name, name. Value examples: ['Tribal King', 'Timbaland', 'Rose White', 'Justin Brown', 'John Nizinik', 'Joe Sharp'].),
+  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
+  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh', 'Gentleman', 'Dangerous'].),
+  (Song_release_year, song release year. Value examples: ['2016', '2014', '2013', '2008', '2003', '1992'].),
+  (Age, age. Value examples: [52, 43, 41, 32, 29, 25].),
+  (Is_male, is male. Value examples: ['T', 'F'].)
+]
+# Table: concert
+[
+  (concert_ID, concert id.),
+  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
+  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
+  (Stadium_ID, stadium id.),
+  (Year, year. Value examples: ['2015', '2014'].)
+]
+# Table: singer_in_concert
+[
+  (concert_ID, concert id.),
+  (Singer_ID, singer id.)
+]
+
+【Foreign keys】
+concert.`Stadium_ID` = stadium.`Stadium_ID`
+singer_in_concert.`Singer_ID` = singer.`Singer_ID`
+singer_in_concert.`concert_ID` = concert.`concert_ID`
+
+【Question】
+What are  the different countries with singers above age 20?
+
+Return ONLY valid JSON. No SQL fences. No extra text.
+
+
+====================
+
+{
+  "sub_questions": ["Find singers who are above age 20"],
+  "sub_queries": ["SELECT DISTINCT Country FROM singer WHERE Age > 20"],
+  "final_sql": "SELECT DISTINCT Country FROM singer WHERE Age > 20"
+}
+
+ prompt_token,response_token: 789 51
+
+
+ total_prompt_tokens,total_response_tokens: 7901 735
+

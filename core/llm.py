@@ -1,3 +1,7 @@
+# ChatManager → Agents (Selector / Decomposer / Refiner) → safe_call_llm() → api_func() → OpenAI / Llama
+# 所有 template 都是丟給 safe_call_llm() 而 safe_call_llm() 就是這個檔案在處理。
+
+import openai
 import sys
 import json
 import time
@@ -29,7 +33,7 @@ def init_log_path(my_log_path):
     api_trace_json_path = os.path.join(dir_name, 'api_trace.json')
 
 
-def api_func(prompt:str):
+def api_func(prompt: str):
     global MODEL_NAME
     print(f"\nUse OpenAI model: {MODEL_NAME}\n")
     if 'Llama' in MODEL_NAME:
@@ -42,7 +46,7 @@ def api_func(prompt:str):
         )
     else:
         response = openai.ChatCompletion.create(
-            engine=MODEL_NAME,
+            model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1
         )
@@ -67,25 +71,31 @@ def safe_call_llm(input_prompt, **kwargs) -> str:
         try:
             if log_path is None:
                 # print(input_prompt)
-                sys_response, prompt_token, response_token = api_func(input_prompt)
+                sys_response, prompt_token, response_token = api_func(
+                    input_prompt)
                 print(f"\nsys_response: \n{sys_response}")
-                print(f'\n prompt_token,response_token: {prompt_token} {response_token}\n')
+                print(
+                    f'\n prompt_token,response_token: {prompt_token} {response_token}\n')
             else:
                 # check log_path and api_trace_json_path is not None
                 if (log_path is None) or (api_trace_json_path is None):
-                    raise FileExistsError('log_path or api_trace_json_path is None, init_log_path first!')
+                    raise FileExistsError(
+                        'log_path or api_trace_json_path is None, init_log_path first!')
                 with open(log_path, 'a+', encoding='utf8') as log_fp, open(api_trace_json_path, 'a+', encoding='utf8') as trace_json_fp:
-                    print('\n' + f'*'*20 +'\n', file=log_fp)
+                    print('\n' + f'*'*20 + '\n', file=log_fp)
                     print(input_prompt, file=log_fp)
-                    print('\n' + f'='*20 +'\n', file=log_fp)
-                    sys_response, prompt_token, response_token = api_func(input_prompt)
+                    print('\n' + f'='*20 + '\n', file=log_fp)
+                    sys_response, prompt_token, response_token = api_func(
+                        input_prompt)
                     print(sys_response, file=log_fp)
-                    print(f'\n prompt_token,response_token: {prompt_token} {response_token}\n', file=log_fp)
-                    print(f'\n prompt_token,response_token: {prompt_token} {response_token}\n')
+                    print(
+                        f'\n prompt_token,response_token: {prompt_token} {response_token}\n', file=log_fp)
+                    print(
+                        f'\n prompt_token,response_token: {prompt_token} {response_token}\n')
 
                     if len(world_dict) > 0:
                         world_dict = {}
-                    
+
                     if len(kwargs) > 0:
                         world_dict = {}
                         for k, v in kwargs.items():
@@ -96,7 +106,6 @@ def safe_call_llm(input_prompt, **kwargs) -> str:
 
                     world_dict['prompt_token'] = prompt_token
                     world_dict['response_token'] = response_token
-                    
 
                     total_prompt_tokens += prompt_token
                     total_response_tokens += response_token
@@ -111,12 +120,15 @@ def safe_call_llm(input_prompt, **kwargs) -> str:
                     world_dict = {}
                     world_json_str = ''
 
-                    print(f'\n total_prompt_tokens,total_response_tokens: {total_prompt_tokens} {total_response_tokens}\n', file=log_fp)
-                    print(f'\n total_prompt_tokens,total_response_tokens: {total_prompt_tokens} {total_response_tokens}\n')
+                    print(
+                        f'\n total_prompt_tokens,total_response_tokens: {total_prompt_tokens} {total_response_tokens}\n', file=log_fp)
+                    print(
+                        f'\n total_prompt_tokens,total_response_tokens: {total_prompt_tokens} {total_response_tokens}\n')
             return sys_response
         except Exception as ex:
             print(ex)
-            print(f'Request {MODEL_NAME} failed. try {i} times. Sleep 20 secs.')
+            print(
+                f'Request {MODEL_NAME} failed. try {i} times. Sleep 20 secs.')
             time.sleep(20)
 
     raise ValueError('safe_call_llm error!')

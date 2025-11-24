@@ -15,10 +15,10 @@ import subprocess
 from itertools import chain
 
 
-
 threadLock = threading.Lock()
 TIMEOUT = 60
 EXEC_TMP_DIR = 'tmp/'
+
 
 def permute_tuple(element: Tuple, perm: Tuple) -> Tuple:
     assert len(element) == len(perm)
@@ -98,7 +98,8 @@ def result_eq(result1: List[Tuple], result2: List[Tuple], order_matters: bool) -
     # s.t. result_1 is the same as result_2
     # we return true if we can find such column & row permutations
     # and false if we cannot
-    tab1_sets_by_columns = [{row[i] for row in result1} for i in range(num_cols)]
+    tab1_sets_by_columns = [{row[i] for row in result1}
+                            for i in range(num_cols)]
 
     # on a high level, we enumerate all possible column permutations that might make result_1 == result_2
     # we decrease the size of the column permutation space by the function get_constraint_permutation
@@ -109,7 +110,8 @@ def result_eq(result1: List[Tuple], result2: List[Tuple], order_matters: bool) -
         if num_cols == 1:
             result2_perm = result2
         else:
-            result2_perm = [permute_tuple(element, perm) for element in result2]
+            result2_perm = [permute_tuple(element, perm)
+                            for element in result2]
         if order_matters:
             if result1 == result2_perm:
                 return True
@@ -156,6 +158,7 @@ async def exec_on_db_(sqlite_path: str, query: str) -> Tuple[str, Any]:
         cursor.connection.close()
         return "exception", e
 
+
 async def exec_on_db(
     sqlite_path: str, query: str, process_id: str = "", timeout: int = TIMEOUT
 ) -> Tuple[str, Any]:
@@ -170,7 +173,8 @@ async def exec_on_db(
 # postprocess the model predictions to avoid execution errors
 # e.g. removing spaces between ">" and "="
 def postprocess(query: str) -> str:
-    query = query.replace('> =', '>=').replace('< =', '<=').replace('! =', '!=')
+    query = query.replace('> =', '>=').replace(
+        '< =', '<=').replace('! =', '!=')
     return query
 
 
@@ -198,7 +202,8 @@ def eval_exec_match(db: str, p_str: str, g_str: str, plug_value: bool, keep_dist
 
     # find all databases in the same directory
     db_dir = os.path.dirname(db)
-    db_paths = [os.path.join(db_dir, basename) for basename in os.listdir(db_dir) if '.sqlite' in basename]
+    db_paths = [os.path.join(db_dir, basename)
+                for basename in os.listdir(db_dir) if '.sqlite' in basename]
 
     preds = [p_str]
     # if plug in value (i.e. we do not consider value prediction correctness)
@@ -216,7 +221,7 @@ def eval_exec_match(db: str, p_str: str, g_str: str, plug_value: bool, keep_dist
         count += 1
         if count > max_try:
             break
-        
+
         pred_passes = 1
         # compare the gold and predicted denotations on each database in the directory
         # wrap with progress bar if required
@@ -230,7 +235,8 @@ def eval_exec_match(db: str, p_str: str, g_str: str, plug_value: bool, keep_dist
             p_flag, p_denotation = asyncio.run(exec_on_db(db_path, pred))
 
             # we should expect the gold to be succesfully executed on the database
-            assert g_flag != 'exception', 'gold query %s has error on database file %s' % (g_str, db_path)
+            assert g_flag != 'exception', 'gold query %s has error on database file %s' % (
+                g_str, db_path)
 
             # wrong if execution fails
             if p_flag == 'exception':

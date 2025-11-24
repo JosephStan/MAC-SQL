@@ -1,3 +1,6 @@
+# 1.	定義一些常數（像 MAX_ROUND、agent 名稱、model 名稱）
+# 2.	定義所有給 LLM 用的「prompt 模板」，也就是 Selector / Decomposer / Refiner 在 call LLM 時會塞進去的那一大串字。
+
 MAX_ROUND = 3  # max try times of one agent talk
 # DESC_LEN_LIMIT = 200  # max length of description of each column (counted by char)
 # MAX_OUTPUT_LEN = 1000  # max length of output (counted by tokens)
@@ -13,84 +16,43 @@ SYSTEM_NAME = 'System'
 
 
 selector_template = """
-As an experienced and professional database administrator, your task is to analyze a user question and a database schema to provide relevant information. The database schema consists of table descriptions, each containing multiple column descriptions. Your goal is to identify the relevant tables and columns based on the user question and evidence provided.
+As an expert database analyst, identify ONLY the tables and columns that are REQUIRED to answer the question.
 
-[Instruction]:
-1. Discard any table schema that is not related to the user question and evidence.
-2. Sort the columns in each relevant table in descending order of relevance and keep the top 6 columns.
-3. Ensure that at least 3 tables are included in the final output JSON.
-4. The output should be in JSON format.
+STRICT RULES:
+1. NEVER keep all tables just because the schema is small.
+2. Select a table ONLY IF:
+   - An entity in the question maps to the table (e.g., singer, continent, country…)
+   - A required attribute is stored in the table (age, name, year…)
+   - A join path is necessary to reach the answer.
+3. Strong pruning:
+   - Keep at most 3 relevant tables unless absolutely necessary.
+   - If a table is relevant, list ONLY columns needed for joins or filtering.
+   - If a table is irrelevant, mark `"drop_all"`.
+4. Output format MUST be valid JSON.
 
-Requirements:
-1. If a table has less than or equal to 10 columns, mark it as "keep_all".
-2. If a table is completely irrelevant to the user question and evidence, mark it as "drop_all".
-3. Prioritize the columns in each relevant table based on their relevance.
+Column Relevance Rules:
+- Include PK/FK needed for joins.
+- Include columns explicitly mentioned or implied by the question
+  (e.g., “youngest singer” → Age).
+- Remove everything else.
 
-Here is a typical example:
+JSON Format:
+{
+  "table1": ["colA", "colB"] or "drop_all",
+  "table2": ["colC"],
+  ...
+}
 
-==========
-【DB_ID】 banking_system
-【Schema】
-# Table: account
-[
-  (account_id, the id of the account. Value examples: [11382, 11362, 2, 1, 2367].),
-  (district_id, location of branch. Value examples: [77, 76, 2, 1, 39].),
-  (frequency, frequency of the acount. Value examples: ['POPLATEK MESICNE', 'POPLATEK TYDNE', 'POPLATEK PO OBRATU'].),
-  (date, the creation date of the account. Value examples: ['1997-12-29', '1997-12-28'].)
-]
-# Table: client
-[
-  (client_id, the unique number. Value examples: [13998, 13971, 2, 1, 2839].),
-  (gender, gender. Value examples: ['M', 'F']. And F：female . M：male ),
-  (birth_date, birth date. Value examples: ['1987-09-27', '1986-08-13'].),
-  (district_id, location of branch. Value examples: [77, 76, 2, 1, 39].)
-]
-# Table: loan
-[
-  (loan_id, the id number identifying the loan data. Value examples: [4959, 4960, 4961].),
-  (account_id, the id number identifying the account. Value examples: [10, 80, 55, 43].),
-  (date, the date when the loan is approved. Value examples: ['1998-07-12', '1998-04-19'].),
-  (amount, the id number identifying the loan data. Value examples: [1567, 7877, 9988].),
-  (duration, the id number identifying the loan data. Value examples: [60, 48, 24, 12, 36].),
-  (payments, the id number identifying the loan data. Value examples: [3456, 8972, 9845].),
-  (status, the id number identifying the loan data. Value examples: ['C', 'A', 'D', 'B'].)
-]
-# Table: district
-[
-  (district_id, location of branch. Value examples: [77, 76].),
-  (A2, area in square kilometers. Value examples: [50.5, 48.9].),
-  (A4, number of inhabitants. Value examples: [95907, 95616].),
-  (A5, number of households. Value examples: [35678, 34892].),
-  (A6, literacy rate. Value examples: [95.6, 92.3, 89.7].),
-  (A7, number of entrepreneurs. Value examples: [1234, 1456].),
-  (A8, number of cities. Value examples: [5, 4].),
-  (A9, number of schools. Value examples: [15, 12, 10].),
-  (A10, number of hospitals. Value examples: [8, 6, 4].),
-  (A11, average salary. Value examples: [12541, 11277].),
-  (A12, poverty rate. Value examples: [12.4, 9.8].),
-  (A13, unemployment rate. Value examples: [8.2, 7.9].),
-  (A15, number of crimes. Value examples: [256, 189].)
-]
-【Foreign keys】
-client.`district_id` = district.`district_id`
-【Question】
-What is the gender of the youngest client who opened account in the lowest average salary branch?
-【Evidence】
-Later birthdate refers to younger age; A11 refers to average salary
-【Answer】
-```json
-{{
-  "account": "keep_all",
-  "client": "keep_all",
-  "loan": "drop_all",
-  "district": ["district_id", "A11", "A2", "A4", "A6", "A7"]
-}}
-```
-Question Solved.
+Example:
+Question: "Find the youngest French singer."
+
+{
+  "singer": ["Singer_ID", "Name", "Age", "Country"],
+  "concert": "drop_all",
+  "stadium": "drop_all"
+}
 
 ==========
-
-Here is a new example, please start answering:
 
 【DB_ID】 {db_id}
 【Schema】
@@ -99,9 +61,8 @@ Here is a new example, please start answering:
 {fk_str}
 【Question】
 {query}
-【Evidence】
-{evidence}
-【Answer】
+
+Return ONLY JSON. No explanation.
 """
 
 
@@ -255,91 +216,60 @@ Decompose the question into sub questions, considering 【Constraints】, and ge
 
 
 decompose_template_spider = """
-Given a 【Database schema】 description, and the 【Question】, you need to use valid SQLite and understand the database, and then generate the corresponding SQL.
+Your task is to break the question into the minimal number of reasoning steps, and generate SQL for each step.
 
-==========
+VERY IMPORTANT:
+You MUST produce a 1-to-1 mapping:
+- sub_questions[n] ↔ sub_queries[n]
+They must correspond exactly.
 
-【Database schema】
-# Table: stadium
-[
-  (Stadium_ID, stadium id. Value examples: [1, 2, 3, 4, 5, 6].),
-  (Location, location. Value examples: ['Stirling Albion', 'Raith Rovers', "Queen's Park", 'Peterhead', 'East Fife', 'Brechin City'].),
-  (Name, name. Value examples: ["Stark's Park", 'Somerset Park', 'Recreation Park', 'Hampden Park', 'Glebe Park', 'Gayfield Park'].),
-  (Capacity, capacity. Value examples: [52500, 11998, 10104, 4125, 4000, 3960].),
-  (Highest, highest. Value examples: [4812, 2363, 1980, 1763, 1125, 1057].),
-  (Lowest, lowest. Value examples: [1294, 1057, 533, 466, 411, 404].),
-  (Average, average. Value examples: [2106, 1477, 864, 730, 642, 638].)
-]
-# Table: concert
-[
-  (concert_ID, concert id. Value examples: [1, 2, 3, 4, 5, 6].),
-  (concert_Name, concert name. Value examples: ['Week 1', 'Week 2', 'Super bootcamp', 'Home Visits', 'Auditions'].),
-  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night', 'Happy Tonight', 'Free choice 2', 'Free choice', 'Bleeding Love'].),
-  (Stadium_ID, stadium id. Value examples: ['2', '9', '7', '10', '1'].),
-  (Year, year. Value examples: ['2015', '2014'].)
-]
-【Foreign keys】
-concert.`Stadium_ID` = stadium.`Stadium_ID`
-【Question】
-Show the stadium name and the number of concerts in each stadium.
+RULES:
+1. Use the FEWEST steps possible (1 to 3).
+2. DO NOT use EXISTS or NOT EXISTS unless logically required.
+3. Avoid nested subqueries unless unavoidable.
+4. Prefer JOIN + GROUP BY over correlated subqueries.
+5. The final_sql MUST directly follow from the last subquery.
 
-SQL
-```sql
-SELECT T1.`Name`, COUNT(*) FROM stadium AS T1 JOIN concert AS T2 ON T1.`Stadium_ID` = T2.`Stadium_ID` GROUP BY T1.`Stadium_ID`
-```
+MANDATORY JSON OUTPUT FORMAT:
+{{
+  "sub_questions": [
+      "step 1...",
+      "step 2..."
+  ],
+  "sub_queries": [
+      "SELECT ...",
+      "SELECT ..."
+  ],
+  "final_sql": "SELECT ..."
+}}
 
-Question Solved.
+Example:
+Question: Find the song of the youngest singer.
 
-==========
-
-【Database schema】
-# Table: singer
-[
-  (Singer_ID, singer id. Value examples: [1, 2].),
-  (Name, name. Value examples: ['Tribal King', 'Timbaland'].),
-  (Country, country. Value examples: ['France', 'United States', 'Netherlands'].),
-  (Song_Name, song name. Value examples: ['You', 'Sun', 'Love', 'Hey Oh'].),
-  (Song_release_year, song release year. Value examples: ['2016', '2014'].),
-  (Age, age. Value examples: [52, 43].)
-]
-# Table: concert
-[
-  (concert_ID, concert id. Value examples: [1, 2].),
-  (concert_Name, concert name. Value examples: ['Super bootcamp', 'Home Visits', 'Auditions'].),
-  (Theme, theme. Value examples: ['Wide Awake', 'Party All Night'].),
-  (Stadium_ID, stadium id. Value examples: ['2', '9'].),
-  (Year, year. Value examples: ['2015', '2014'].)
-]
-# Table: singer_in_concert
-[
-  (concert_ID, concert id. Value examples: [1, 2].),
-  (Singer_ID, singer id. Value examples: ['3', '6'].)
-]
-【Foreign keys】
-singer_in_concert.`Singer_ID` = singer.`Singer_ID`
-singer_in_concert.`concert_ID` = concert.`concert_ID`
-【Question】
-Show the name and the release year of the song by the youngest singer.
-
-
-SQL
-```sql
-SELECT `Song_Name`, `Song_release_year` FROM singer WHERE Age = (SELECT MIN(Age) FROM singer)
-```
-
-Question Solved.
+{{
+  "sub_questions": [
+    "Find the minimum age among singers.",
+    "Select songs from singers with that age."
+  ],
+  "sub_queries": [
+    "SELECT MIN(Age) AS min_age FROM singer",
+    "SELECT Song_Name FROM singer WHERE Age = (SELECT MIN(Age) FROM singer)"
+  ],
+  "final_sql": "SELECT Song_Name FROM singer WHERE Age = (SELECT MIN(Age) FROM singer)"
+}}
 
 ==========
 
 【Database schema】
 {desc_str}
+
 【Foreign keys】
 {fk_str}
+
 【Question】
 {query}
 
-SQL
-
+Return ONLY valid JSON.
 """
 
 
@@ -423,7 +353,6 @@ Question Solved.
 
 Decompose the question into sub questions, considering 【Constraints】, and generate the SQL after thinking step by step:
 """
-
 
 
 oneshot_template_2 = """

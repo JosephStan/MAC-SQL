@@ -1,3 +1,4 @@
+#  是 Agent（尤其 Refiner）會使用裡面的 parsing function 來協助解析 LLM 輸出 SQL 內容
 # -*- coding: utf-8 -*-
 import os
 import re
@@ -44,19 +45,19 @@ def rename_file(file_path, new_name):
     # 获取文件的目录和后缀名
     dir_name = os.path.dirname(file_path)
     file_name, file_ext = os.path.splitext(os.path.basename(file_path))
-    
+
     # 获取当前时间戳
     timestamp = str(int(time.time()))
-    
+
     # 构建新的文件名
     new_file_name = new_name + '_' + timestamp + file_ext
-    
+
     # 构建新的文件路径
     new_file_path = os.path.join(dir_name, new_file_name)
-    
+
     # 重命名文件
     os.rename(file_path, new_file_path)
-    
+
     return new_file_path
 
 
@@ -67,7 +68,6 @@ def is_email(string):
         return True
     else:
         return False
-
 
 
 def extract_world_info(message_dict: dict):
@@ -97,11 +97,12 @@ def extract_table_names(sql_query):
     # 假设表名位于FROM关键字后面，且没有特殊字符或空格
     sql_query = sql_query.replace('`', '')
     table_names = re.findall(r'FROM\s+([\w]+)', sql_query, re.IGNORECASE) + \
-                  re.findall(r'JOIN\s+([\w]+)', sql_query, re.IGNORECASE)
+        re.findall(r'JOIN\s+([\w]+)', sql_query, re.IGNORECASE)
     return set(table_names)
 
 
-def get_used_tables(sql, db_path) -> dict:  # table_name -> chosen columns & discarded columns
+# table_name -> chosen columns & discarded columns
+def get_used_tables(sql, db_path) -> dict:
     table_names = extract_table_names(sql)
     sch = {}
     conn = sqlite3.connect(db_path)
@@ -164,7 +165,8 @@ def get_gold_columns(idx, db_path) -> dict:
         unused_columns = list(set(all_columns).difference(set(gold_columns)))
         random.shuffle(unused_columns)
         sch[table_name] = {
-            "chosen columns": gold_columns + unused_columns[:3],  # used golden cols + unused random 3 cols
+            # used golden cols + unused random 3 cols
+            "chosen columns": gold_columns + unused_columns[:3],
             "discarded columns": []
         }
     return sch
@@ -248,7 +250,8 @@ def get_files(root, suffix):
 def read_txt_file(path):
     with open(path, 'r', encoding='utf-8') as f:
         print(f"load txt file from {path}")
-        return [line.strip() for line in f if line.strip()!= '']
+        return [line.strip() for line in f if line.strip() != '']
+
 
 def load_json_file(path):
     with open(path, 'r', encoding='utf-8') as f:
@@ -306,11 +309,11 @@ def parse_json(text: str) -> dict:
     # 查找字符串中的 JSON 块
     start = text.find("```json")
     end = text.find("```", start + 7)
-    
+
     # 如果找到了 JSON 块
     if start != -1 and end != -1:
         json_string = text[start + 7: end]
-        
+
         try:
             # 解析 JSON 字符串
             json_data = json.loads(json_string)
@@ -323,7 +326,7 @@ def parse_json(text: str) -> dict:
             print(f"error: parse json error!\n")
             print(f"json_string: {json_string}\n\n")
             pass
-    
+
     return {}
 
 
@@ -349,14 +352,15 @@ def parse_sql_from_string(input_string):
     # 将所有匹配到的都打印出来
     for match in re.finditer(sql_pattern, input_string, re.DOTALL):
         all_sqls.append(match.group(1).strip())
-    
+
     if all_sqls:
         return all_sqls[-1]
     else:
         return "error: No SQL found in the input string"
 
 
-def parse_single_sql(res: str) -> str:  # if do not need decompose, just one code block is OK!
+# if do not need decompose, just one code block is OK!
+def parse_single_sql(res: str) -> str:
     """Return SQL in markdown block"""
     lines = res.split('\n')
     iter, start_idx, end_idx = -1, -1, -1
@@ -364,12 +368,14 @@ def parse_single_sql(res: str) -> str:  # if do not need decompose, just one cod
         if '```' in lines[idx]:
             start_idx = idx
             break
-    if start_idx == -1: return ""
+    if start_idx == -1:
+        return ""
     for idx in range(start_idx + 1, len(lines)):
         if '```' in lines[idx]:
             end_idx = idx
             break
-    if end_idx == -1: return f"error: \n{res}"
+    if end_idx == -1:
+        return f"error: \n{res}"
 
     return " ".join(lines[start_idx + 1: end_idx])
 
@@ -391,12 +397,14 @@ def parse_qa_pairs(res: str, end_pos=2333) -> list:
                 if '```' in lines[idx2]:
                     start_idx = idx2
                     break
-            if start_idx == -1: return []
+            if start_idx == -1:
+                return []
             for idx3 in range(start_idx + 1, end_pos):
                 if '```' in lines[idx3]:
                     end_idx = idx3
                     break
-            if end_idx == -1: return []
+            if end_idx == -1:
+                return []
             answer = " ".join(lines[start_idx + 1: end_idx])
             qa_pairs.append((str(query), str(answer)))
             idx = end_idx
@@ -421,10 +429,12 @@ def add_prefix(sql):
 # Spider data preprocess
 
 
-CLAUSE_KEYWORDS = ('select', 'from', 'where', 'group', 'order', 'limit', 'intersect', 'union', 'except')
+CLAUSE_KEYWORDS = ('select', 'from', 'where', 'group',
+                   'order', 'limit', 'intersect', 'union', 'except')
 JOIN_KEYWORDS = ('join', 'on', 'as')
 
-WHERE_OPS = ('not', 'between', '=', '>', '<', '>=', '<=', '!=', 'in', 'like', 'is', 'exists')
+WHERE_OPS = ('not', 'between', '=', '>', '<', '>=',
+             '<=', '!=', 'in', 'like', 'is', 'exists')
 UNIT_OPS = ('none', '-', '+', "*", '/')
 AGG_OPS = ('none', 'max', 'min', 'count', 'sum', 'avg')
 TABLE_TYPE = {
@@ -482,8 +492,10 @@ def count_component1(sql):
 
     ao = sql['from']['conds'][1::2] + sql['where'][1::2] + sql['having'][1::2]
     count += len([token for token in ao if token == 'or'])
-    cond_units = sql['from']['conds'][::2] + sql['where'][::2] + sql['having'][::2]
-    count += len([cond_unit for cond_unit in cond_units if cond_unit[1] == WHERE_OPS.index('like')])
+    cond_units = sql['from']['conds'][::2] + \
+        sql['where'][::2] + sql['having'][::2]
+    count += len([cond_unit for cond_unit in cond_units if cond_unit[1]
+                 == WHERE_OPS.index('like')])
 
     return count
 
@@ -501,7 +513,7 @@ def count_others(sql):
     agg_count += count_agg(sql['groupBy'])
     if len(sql['orderBy']) > 0:
         agg_count += count_agg([unit[1] for unit in sql['orderBy'][1] if unit[1]] +
-                            [unit[2] for unit in sql['orderBy'][1] if unit[2]])
+                               [unit[2] for unit in sql['orderBy'][1] if unit[2]])
     agg_count += count_agg(sql['having'])
     if agg_count > 1:
         count += 1
