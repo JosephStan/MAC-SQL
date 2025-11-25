@@ -19,7 +19,7 @@ DATASET_CONFIG = {
         "tables_json": "./data/spider/tables.json",
         "dataset_name": "spider"
     },
-    "Bird (Dev)": {
+    "Bird": {
         "db_root": "./data/bird/dev_databases",
         "tables_json": "./data/bird/dev_tables.json",
         "dataset_name": "bird"
@@ -41,7 +41,7 @@ def get_manager(dataset_key="Spider"):
             data_path=config["db_root"],
             tables_json_path=config["tables_json"],
             log_path=f"logs/macsql_{config['dataset_name']}.log",
-            model_name="gpt-4o-mini",
+            model_name="gpt-4.1-nano",
             dataset_name=config["dataset_name"],
         )
     return CURRENT_MANAGER
@@ -111,6 +111,30 @@ def get_database_tables(dataset_key: str, db_id: str):
         return tables
     except Exception:
         return []
+
+# --------------------------------------------------------
+# New Formatter for Selector
+# --------------------------------------------------------
+def format_selector_html(schema_dict):
+    if not schema_dict:
+        return "<i>No specific schema selected (or Drop All).</i>"
+    
+    html = "<div style='display:flex; flex-wrap:wrap; gap:10px;'>"
+    for table, cols in schema_dict.items():
+        # Handle cases where cols might be a string (e.g., "drop_all")
+        if isinstance(cols, list):
+            col_badges = "".join([f"<span style='background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:12px; margin:2px; display:inline-block;'>{c}</span>" for c in cols])
+        else:
+            col_badges = f"<span>{str(cols)}</span>"
+
+        html += f"""
+        <div style='border:1px solid #e5e7eb; border-radius:8px; padding:10px; width:300px; background:white; box-shadow:0 1px 2px rgba(0,0,0,0.05);'>
+            <div style='font-weight:bold; color:#374151; border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom:5px;'> {table}</div>
+            <div>{col_badges}</div>
+        </div>
+        """
+    html += "</div>"
+    return html
 
 # --------------------------------------------------------
 # Parser Logic
@@ -214,35 +238,50 @@ def on_submit(dataset_key, db_id, question, history):
     
     # Chat Reply
     if err:
-        reply = f"❌ SQL Error:\n```\n{err}\n```"
+        reply = f"SQL Error:\n```\n{err}\n```"
     else:
         count = len(df) if df is not None else 0
-        reply = f"✅ Success! Found {count} rows.\nSample data shown in table."
+        reply = f"Success! Found {count} rows.\nSample data shown in table."
         if diff["was_fixed"]: reply += f"\n\n**Note:** {diff['fix_description']}"
 
     history = history + [(question, reply)]
     
     # Comparison HTML
     if diff["was_fixed"]:
-        comp_html = f"""<div style="padding:10px; background:#fff3cd; border-radius:5px;">
-        <b>Original (Failed):</b><br><pre>{res['decomposer_sql']}</pre>
-        <div style="text-align:center">⬇️ <i>Refined</i></div>
-        <b>Fixed:</b><br><pre>{res['final_sql']}</pre>
-        </div>"""
+        comp_md = (
+            "#### Original SQL (from Decomposer)\n"
+            f"```sql\n{res['decomposer_sql']}\n```\n"
+            "⬇️ *Refined SQL*\n"
+            f"```sql\n{res['final_sql']}\n```"
+        )
     elif res["decomposer_sql"].strip() != res["final_sql"].strip():
-        comp_html = f"""<div style="padding:10px; background:#e2e3e5; border-radius:5px;">
-        <b>Original:</b><br><pre>{res['decomposer_sql']}</pre>
-        <div style="text-align:center">⬇️ <i>Optimized</i></div>
-        <b>Final:</b><br><pre>{res['final_sql']}</pre>
-        </div>"""
+        comp_md = (
+            "#### Original SQL\n"
+            f"```sql\n{res['decomposer_sql']}\n```\n"
+            "⬇️ *Final SQL*\n"
+            f"```sql\n{res['final_sql']}\n```"
+    )
     else:
-        comp_html = f"<div style='padding:10px; background:#d4edda; border-radius:5px;'><b>SQL Generated (No changes needed):</b><br><pre>{res['final_sql']}</pre></div>"
-
+        comp_md = (
+            "```sql\n"
+            f"{res['final_sql']}\n"
+            "```"
+        )
     # Text outputs
     decomp_text = "\n\n".join(res["sub_questions"]) if res["sub_questions"] else "No decomposition steps found."
-    decomp_text += f"\n\n### Decomposer SQL\n```sql\n{res['decomposer_sql']}\n```"
     
-    return history, comp_html, (df if df is not None else pd.DataFrame()), decomp_text, comp_html, json.dumps(res["schema"], indent=2), res["trace"]
+    # 1. Pretty Selector Format
+    selector_html = format_selector_html(res["schema"])
+    
+    return (
+        history, 
+        comp_md, 
+        (df if df is not None else pd.DataFrame()),
+        decomp_text, 
+        selector_html, 
+        res["trace"]
+    )
+
 
 # --------------------------------------------------------
 # Event Handlers
@@ -275,8 +314,17 @@ def main():
     css = """
     * { font-family: Arial, sans-serif !important; }
     .gradio-container { max-width: 95% !important; } 
-    .result-table { height: 400px; overflow: auto; }
+    .result-table { height: 500px !important; overflow-y: auto !important; }
+    .trace-box { height: 500px !important; overflow-y: scroll !important; }
     pre { white-space: pre-wrap; }
+    
+    /* Stronger selector to force font size change */
+    .small-chat .prose, 
+    .small-chat .prose p, 
+    .small-chat .message,
+    .small-chat span { 
+        font-size: 13px !important; 
+    }
     """
     with gr.Blocks(css=css, theme="soft", title="MAC-SQL") as demo:
         gr.Markdown("## MAC-SQL: Multi-Agent Text-to-SQL (Spider & Bird)")
@@ -287,25 +335,38 @@ def main():
         
         with gr.Row():
             with gr.Column(scale=1):
-                chatbot = gr.Chatbot(height=400)
+                chatbot = gr.Chatbot(height=400,elem_classes=["small-chat"])
                 q_input = gr.Textbox(label="Question", placeholder="e.g. How many singers are there?")
                 btn = gr.Button("Generate SQL", variant="primary")
             
             with gr.Column(scale=2):
                 with gr.Tab("Result Table"):
-                    res_df = gr.DataFrame(elem_classes=["result-table"])
+                    res_df = gr.DataFrame(
+                        elem_classes=["result-table"],
+                        wrap=True,
+                        max_height=400
+                    )
+
                 with gr.Tab("Browse Database"):
                     tb_dd = gr.Dropdown(label="Table", choices=[])
-                    tb_df = gr.DataFrame(elem_classes=["result-table"])
+                    tb_df = gr.DataFrame(
+                        elem_classes=["result-table"],
+                        wrap=True,
+                        max_height=400
+                    )
                 with gr.Tab("Agent Details"):
-                    with gr.Accordion("Decomposition", open=True):
+                    with gr.Accordion("Selecter", open=False):
+                        # 1. Changed to HTML for pretty format
+                        schema_box = gr.HTML()
+                    with gr.Accordion("Decomposer", open=True):
+                        # 2. Changed to Markdown for formating
                         decomp_md = gr.Markdown()
-                    with gr.Accordion("Refinement Comparison", open=True):
-                        refine_html = gr.HTML()
-                    with gr.Accordion("Schema Selected", open=False):
-                        schema_box = gr.Textbox(lines=10)
+                    with gr.Accordion("Refiner", open=True):
+                         # Refiner now uses Markdown (text)
+                        refine_html = gr.Markdown()
                     with gr.Accordion("Raw Trace", open=False):
-                        trace_box = gr.Textbox(lines=10)
+                        # 3. Changed to Code for scrolling and JSON highlighting
+                        trace_box = gr.Code(language="json", elem_classes=["trace-box"])
 
         # Init
         demo.load(on_dataset_change, [ds_dd], [db_dd, tb_dd, tb_df])
@@ -315,8 +376,14 @@ def main():
         db_dd.change(on_db_change, [ds_dd, db_dd], [tb_dd, tb_df])
         tb_dd.change(on_table_select, [ds_dd, db_dd, tb_dd], [tb_df])
         
-        btn.click(on_submit, [ds_dd, db_dd, q_input, chatbot], [chatbot, refine_html, res_df, decomp_md, refine_html, schema_box, trace_box])
-        q_input.submit(on_submit, [ds_dd, db_dd, q_input, chatbot], [chatbot, refine_html, res_df, decomp_md, refine_html, schema_box, trace_box])
+        # FIX: Removed the duplicate 'refine_html' from the output list.
+        # Original (Error): [chatbot, refine_html, res_df, decomp_md, refine_html, schema_box, trace_box]
+        # Fixed:            [chatbot, refine_html, res_df, decomp_md, schema_box, trace_box]
+        
+        outputs = [chatbot, refine_html, res_df, decomp_md, schema_box, trace_box]
+
+        btn.click(on_submit, [ds_dd, db_dd, q_input, chatbot], outputs)
+        q_input.submit(on_submit, [ds_dd, db_dd, q_input, chatbot], outputs)
 
     demo.launch()
 

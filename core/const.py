@@ -20,13 +20,17 @@ descriptions, each containing multiple column descriptions. Your goal is to iden
 relevant tables and columns based on the user question and evidence provided.
 
 [Instruction]:
-1. Discard any table schema that is not related to the user question and evidence.
-2. Discard any columns that are not related to the user question.
-3. The output should be in JSON format.
+1. ANALYZE the question and evidence carefully.
+2. SELECT only the tables required for the JOIN or SELECT.
+3. SELECT only the columns mentioned in the question or required for JOIN keys.
+4. EXCLUDE all other columns. Do NOT include extra columns "just in case".
+5. If a table is not needed, mark it as "drop_all".
+6. The output must be valid JSON.
+
 
 Requirements:
 1. Only select the tables and columns strictly necessary to answer the question.
-2. Do not include extra columns just because the table is small.
+2. Do not include extra tables and columns just because the table is small.
 3. If a table is completely irrelevant, mark it as "drop_all".
 
 Here is a typical example:

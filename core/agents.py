@@ -542,13 +542,14 @@ class Selector(BaseAgent):
         # encoder = tiktoken.get_encoding("cl100k_base")
         # tokens = encoder.encode(db_schema)
         # return len(tokens) >= 25000
-        db_dict = self.db2dbjsons[db_id]
-        avg_column_count = db_dict['avg_column_count']
-        total_column_count = db_dict['total_column_count']
-        if avg_column_count <= 6 and total_column_count <= 30:
-            return False
-        else:
-            return True
+        # db_dict = self.db2dbjsons[db_id]
+        # avg_column_count = db_dict['avg_column_count']
+        # total_column_count = db_dict['total_column_count']
+        # if avg_column_count <= 6 and total_column_count <= 30:
+        #     return False
+        # else:
+        #     return True
+        return True
 
     def _prune(self,
                db_id: str,
