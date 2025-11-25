@@ -90,34 +90,39 @@ def run_batch(dataset_name, input_file, output_file, db_path, tables_json_path, 
             finished_ids.add(o['idx'])
     unfinished_ids = [n for n in range(len(batch)) if n not in finished_ids and n >= start_pos]
     print(f"len(unfinished_data) = {len(unfinished_ids)}")
+    
 
     # add question_id if needed
     for k, item in enumerate(batch):
         if 'question_id' not in item:
             item['question_id'] = k
-
+    batch = sorted(batch, key=lambda x: x['question_id'])
+    print("Expected (total in dev_subset):", len(batch))
+    print("unfinished (will be processed):", len(unfinished_ids))
+    print("start_pos:", start_pos)
+    print("finished (already in output_file):", len(finished_ids))
     # skip some json data
     excluded_db_ids = []
-    if dataset_mode == 'train':
-        exclude_txt = './data/bird_train/excluded_db_ids.txt'
-        excluded_db_ids = read_txt_file(exclude_txt)
+    #if dataset_mode == 'train':
+        #exclude_txt = './data/bird_train/excluded_db_ids.txt'
+        #excluded_db_ids = read_txt_file(exclude_txt)
     new_batch = []
     exclude_db_json_cnt = 0 # for exclude some dbs in bird train set
     for k, item in enumerate(batch):
         q_id = item['question_id']
-        if q_id not in unfinished_ids:
-            continue
-        if dataset_mode == 'train':
+        #if q_id not in unfinished_ids:
+            #continue
+        #if dataset_mode == 'train':
             # skip excluded db_id
-            if item['db_id'] in excluded_db_ids:
-                exclude_db_json_cnt += 1
-                continue
+            #if item['db_id'] in excluded_db_ids:
+                #exclude_db_json_cnt += 1
+                #continue
         new_batch.append(item)
     
-    if exclude_db_json_cnt:
-        print(f"excluded {exclude_db_json_cnt} excluded db json data")
-    time.sleep(2)
-    batch = new_batch
+    #if exclude_db_json_cnt:
+        #print(f"excluded {exclude_db_json_cnt} excluded db json data")
+    #time.sleep(2)
+    #batch = new_batch
 
 
     # generate SQL one by one, and save result one by one
@@ -134,6 +139,17 @@ def run_batch(dataset_name, input_file, output_file, db_path, tables_json_path, 
                 user_message = init_bird_message(idx, item, db_path=db_path, use_gold_schema=use_gold_schema)  # imitate user send a question to system
             try:
                 chat_manager.start(user_message)
+                if 'selector_output' in user_message:
+                    print("\n========== SELECTOR OUTPUT ==========")
+                    print(json.dumps(user_message['selector_output'], indent=2, ensure_ascii=False))
+                if 'decomposer_output' in user_message:
+                    print("\n========== DECOMPOSER OUTPUT ==========")
+                    print(json.dumps(user_message['decomposer_output'], indent=2, ensure_ascii=False))
+
+                if 'refiner_output' in user_message:
+                    print("\n========== REFINER OUTPUT ==========")
+                    print(json.dumps(user_message['refiner_output'], indent=2, ensure_ascii=False))
+                
                 try:
                     del user_message['desc_str']
                     del user_message['fk_str']
@@ -145,6 +161,16 @@ def run_batch(dataset_name, input_file, output_file, db_path, tables_json_path, 
                 # for debug
                 traceback.print_exc()
                 print(f"Exception: {e}, sleep 20 seconds.", flush=True)
+                error_obj = {
+                    "idx": idx,
+                    "db_id": db_id,
+                    "query": item.get("question", ""),
+                    "pred": "",                           # empty pred
+                    "error": str(e),                      # store error message
+                    "ground_truth": item.get("SQL", ""),  # keep GT if you want
+                    "difficulty": item.get("difficulty", "")
+                }
+                print(json.dumps(error_obj, ensure_ascii=False), file=fp, flush=True)
                 time.sleep(20)
                 # raise Exception(str(e))
             print(f"\n\ndeal {cur_idx+1}/{total_num} done!\n\n")
@@ -227,3 +253,4 @@ if __name__ == "__main__":
         use_gold_schema=args.use_gold_schema,
         without_selector=args.without_selector
     )
+       

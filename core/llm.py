@@ -1,6 +1,7 @@
 import sys
 import json
 import time
+import os
 from core.api_config import *
 
 MAX_TRY = 5
@@ -12,7 +13,6 @@ log_path = None
 api_trace_json_path = None
 total_prompt_tokens = 0
 total_response_tokens = 0
-
 
 def init_log_path(my_log_path):
     global total_prompt_tokens
@@ -28,29 +28,26 @@ def init_log_path(my_log_path):
     # 另外一个记录api调用的文件
     api_trace_json_path = os.path.join(dir_name, 'api_trace.json')
 
+from openai import OpenAI
+import os
 
-def api_func(prompt:str):
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+def api_func(prompt: str):
     global MODEL_NAME
     print(f"\nUse OpenAI model: {MODEL_NAME}\n")
-    if 'Llama' in MODEL_NAME:
-        openai.api_version = None
-        openai.api_type = "open_ai"
-        openai.api_key = "EMPTY"
-        response = openai.ChatCompletion.create(
-            model=MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}]
-        )
-    else:
-        response = openai.ChatCompletion.create(
-            engine=MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.1
-        )
-    text = response['choices'][0]['message']['content'].strip()
-    prompt_token = response['usage']['prompt_tokens']
-    response_token = response['usage']['completion_tokens']
-    return text, prompt_token, response_token
 
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1
+    )
+
+    text = response.choices[0].message.content.strip()
+    prompt_token = response.usage.prompt_tokens
+    response_token = response.usage.completion_tokens
+
+    return text, prompt_token, response_token
 
 def safe_call_llm(input_prompt, **kwargs) -> str:
     """
@@ -120,7 +117,6 @@ def safe_call_llm(input_prompt, **kwargs) -> str:
             time.sleep(20)
 
     raise ValueError('safe_call_llm error!')
-
 
 if __name__ == "__main__":
     res = safe_call_llm('我爸妈结婚为什么不邀请我？')

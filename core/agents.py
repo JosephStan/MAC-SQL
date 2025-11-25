@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+# bring in utility helpers
+# 
 from core.utils import parse_json, parse_sql_from_string, add_prefix, load_json_file, extract_world_info, is_email, is_valid_date_column
+
 from func_timeout import func_set_timeout, FunctionTimedOut
 
 LLM_API_FUC = None
@@ -48,6 +51,8 @@ class Selector(BaseAgent):
 
     def __init__(self, data_path: str, tables_json_path: str, model_name: str, dataset_name:str, lazy: bool = False, without_selector: bool = False):
         super().__init__()
+        # Initializes file paths, caches, model and dataset name.
+        # Loads tables metadata (tables.json) into db2dbjsons.
         self.data_path = data_path.strip('/').strip('\\')
         self.tables_json_path = tables_json_path
         self.model_name = model_name
@@ -125,7 +130,7 @@ class Selector(BaseAgent):
         """
         return column_names, column_types
 
-    
+    # Purpose: for each non-key column, sample distinct values (group by) and produce a compact “Value examples: […]” string.
     def _get_unique_column_values_str(self, cursor, table, column_names, column_types, 
                                       json_column_names, is_key_column_lst):
 
@@ -133,8 +138,6 @@ class Selector(BaseAgent):
         col_to_values_str_dict = {}
 
         key_col_list = [json_column_names[i] for i, flag in enumerate(is_key_column_lst) if flag]
-
-        len_column_names = len(column_names)
 
         for idx, column_name in enumerate(column_names):
             # 查询每列的 distinct value, 从指定的表中选择指定列的值，并按照该列的值进行分组。然后按照每个分组中的记录数量进行降序排序。
@@ -180,11 +183,10 @@ class Selector(BaseAgent):
                 values_str = ''
             elif column_name in col_to_values_str_dict:
                 values_str = col_to_values_str_dict[column_name]
-            else:
-                print(col_to_values_str_dict)
-                time.sleep(3)
-                print(f"error: column_name: {column_name} not found in col_to_values_str_dict")
-            
+            #else:
+                #print(col_to_values_str_dict)
+                #time.sleep(3)
+                #print(f"error: column_name: {column_name} not found in col_to_values_str_dict")
             col_to_values_str_lst.append([column_name, values_str])
         
         return col_to_values_str_lst
@@ -253,6 +255,7 @@ class Selector(BaseAgent):
         val_str = str(vals)
         return val_str
     
+    # Builds a rich view of one DB 
     def _load_single_db_info(self, db_id: str) -> dict:
         table2coldescription = {} # Dict {table_name: [(column_name, full_column_name, column_description), ...]}
         table2primary_keys = {} # DIct {table_name: [primary_key_column_name,...]}
@@ -347,7 +350,7 @@ class Selector(BaseAgent):
         # print table_name and primary keys
         # for tb_name, pk_keys in table2primary_keys.items():
         #     print(f"table_name: {tb_name}; primary key: {pk_keys}")
-        time.sleep(3)
+        #time.sleep(3)
 
         # wrap result and return
         result = {
@@ -468,7 +471,7 @@ class Selector(BaseAgent):
             new_columns_desc = []
             new_columns_val = []
 
-            print(f"table_name: {table_name}")
+            #print(f"table_name: {table_name}")
             if table_decision == "drop_all":
                 new_columns_desc = deepcopy(columns_desc[:6])
                 new_columns_val = deepcopy(columns_val[:6])
@@ -477,7 +480,7 @@ class Selector(BaseAgent):
                 new_columns_val = deepcopy(columns_val)
             else:
                 llm_chosen_columns = table_decision
-                print(f"llm_chosen_columns: {llm_chosen_columns}")
+                #print(f"llm_chosen_columns: {llm_chosen_columns}")
                 append_col_names = []
                 for idx, col in enumerate(all_columns):
                     if col in important_keys:
@@ -522,6 +525,17 @@ class Selector(BaseAgent):
         schema_desc_str = schema_desc_str.strip()
         fk_desc_str = fk_desc_str.strip()
         
+        #print("\n[Selector Output Summary]")
+        #print(f"Database: {db_id}")
+        #print("Relevant tables and chosen columns:")
+        for tname, cols in chosen_db_schem_dict.items():
+            print(f"  - {tname}: {cols}")
+        if db_fk_infos:
+            #print("\nForeign keys (unique):")
+            for fk in sorted(set(db_fk_infos)):
+                print(f"  {fk}")
+        print("-" * 60 + "\n")
+
         return schema_desc_str, fk_desc_str, chosen_db_schem_dict
 
     def _is_need_prune(self, db_id: str, db_schema: str):
@@ -568,10 +582,12 @@ class Selector(BaseAgent):
             use_gold_schema = True
         db_schema, db_fk, chosen_db_schem_dict = self._get_db_desc_str(db_id=db_id, extracted_schema=ext_sch, use_gold_schema=use_gold_schema)
         need_prune = self._is_need_prune(db_id, db_schema)
+        
         if self.without_selector:
-            need_prune = False
+           need_prune = False
+        else: need_prune = True
+        
         if ext_sch == {} and need_prune:
-            
             try:
                 raw_extracted_schema_dict = self._prune(db_id=db_id, query=query, db_schema=db_schema, db_fk=db_fk, evidence=evidence)
             except Exception as e:
@@ -593,6 +609,7 @@ class Selector(BaseAgent):
             message['fk_str'] = db_fk
             message['pruned'] = False
             message['send_to'] = DECOMPOSER_NAME
+        return message.copy()
 
 
 class Decomposer(BaseAgent):
@@ -644,7 +661,9 @@ class Decomposer(BaseAgent):
             res = parse_sql_from_string(reply)
         except Exception as e:
             res = f'error: {str(e)}'
-            print(res)
+            if __debug__:
+                print(f"[Decomposer] parse_sql_from_string failed: {e}")
+            #print(res)
             time.sleep(1)
         
         ## Without decompose
@@ -656,11 +675,14 @@ class Decomposer(BaseAgent):
         message['qa_pairs'] = qa_pairs
         message['fixed'] = False
         message['send_to'] = REFINER_NAME
+        # print("[DEBUG] Decomposer extracted SQL:", res)
+        return message.copy()
 
 
 class Refiner(BaseAgent):
     name = REFINER_NAME
     description = "Execute SQL and preform validation"
+    
 
     def __init__(self, data_path: str, dataset_name: str):
         super().__init__()
@@ -668,7 +690,9 @@ class Refiner(BaseAgent):
         self.dataset_name = dataset_name
         self._message = {}
 
+
     @func_set_timeout(120)
+    # this funcion is to run and capture SQL results
     def _execute_sql(self, sql: str, db_id: str) -> dict:
         # Get database connection
         db_path = f"{self.data_path}/{db_id}/{db_id}.sqlite"
@@ -678,18 +702,25 @@ class Refiner(BaseAgent):
         try:
             cursor.execute(sql)
             result = cursor.fetchall()
+            # Returns the result as a dictionary.
+            # "sql" → the SQL that was just executed (for logging)
+            # "data" → the first 5 rows of results (a small preview)
+            # "sqlite_error" → empty string (no error)
+            # "exception_class" → empty string (no exception)
             return {
                 "sql": str(sql),
                 "data": result[:5],
                 "sqlite_error": "",
                 "exception_class": ""
             }
+        # Handles database-specific errors
         except sqlite3.Error as er:
             return {
                 "sql": str(sql),
                 "sqlite_error": str(' '.join(er.args)),
                 "exception_class": str(er.__class__)
             }
+        # Catches all other (non-SQLite) Python errors.
         except Exception as e:
             return {
                 "sql": str(sql),
@@ -698,45 +729,67 @@ class Refiner(BaseAgent):
             }
 
     def _is_need_refine(self, exec_result: dict):
+        # receives the output from _execute_sql(), a dictionary 
         # spider exist dirty values, even gold sql execution result is None
+        # So for Spider, we use a relaxed rule
+        # If "data" is missing completely → refine (True)
+        # Otherwise, assume it’s fine (False)
+
         if self.dataset_name == 'spider':
             if 'data' not in exec_result:
                 return True
             return False
         
+        # for other datasets, retrieves the actual result preview.
         data = exec_result.get('data', None)
+
+        #If the SQL runs but returns 0 rows, it’s considered a failed query (maybe wrong filtering).
+        # So it marks "no data selected" and signals refinement needed.
         if data is not None:
             if len(data) == 0:
                 exec_result['sqlite_error'] = 'no data selected'
                 return True
+            # If any field in the first few rows is NULL, it assumes the SQL didn’t filter properly (dirty results).
+            # It suggests adding a WHERE ... IS NOT NULL clause.
+            # So again → refinement needed.
             for t in data:
                 for n in t:
                      if n is None:  # fixme fixme fixme fixme fixme
                         exec_result['sqlite_error'] = 'exist None value, you can add `NOT NULL` in SQL'
                         return True
             return False
+        # If _execute_sql() never returned a data key (for example, execution crashed),
+        # it’s an automatic “needs refine” case.
         else:
             return True
-
+    
+    # build refine prompt that includes:
     def _refine(self,
                query: str,
                evidence:str,
                schema_info: str,
                fk_info: str,
                error_info: dict) -> dict:
-        
+        # This grabs the old SQL and its errors:
+        # error_info.get('sql'): The SQL that failed (from the decomposer or previous refine)
+        # sqlite_error: The textual error message (e.g., "no such column: AirlineCode")
+        # exception_class: The Python exception type (e.g., "OperationalError")
         sql_arg = add_prefix(error_info.get('sql'))
         sqlite_error = error_info.get('sqlite_error')
         exception_class = error_info.get('exception_class')
+        # create the refine prompt
         prompt = refiner_template.format(query=query, evidence=evidence, desc_str=schema_info, \
                                        fk_str=fk_info, sql=sql_arg, sqlite_error=sqlite_error, \
                                         exception_class=exception_class)
 
         word_info = extract_world_info(self._message)
+
+        # This is the actual call to the language model (e.g., GPT-4, GPT-5, etc.).
+        # The model reads the prompt, analyzes the error message and schema, and outputs a new SQL inside a code block.
         reply = LLM_API_FUC(prompt, **word_info)
         res = parse_sql_from_string(reply)
         return res
-
+    
     def talk(self, message: dict):
         """
         Execute SQL and preform validation
@@ -750,6 +803,9 @@ class Refiner(BaseAgent):
         """
         if message['send_to'] != self.name: return
         self._message = message
+        # Here it unpacks everything it needs:
+        # If this is a refinement round, use the last predicted SQL (pred)
+        # Otherwise, use the decomposer’s initial SQL (final_sql)
         db_id, old_sql, query, evidence, schema_info, fk_info = message.get('db_id'), \
                                                             message.get('pred', message.get('final_sql')), \
                                                             message.get('query'), \
@@ -764,6 +820,7 @@ class Refiner(BaseAgent):
             return
         
         is_timeout = False
+        #  runs the query on the SQLite DB
         try:
             error_info = self._execute_sql(old_sql, db_id)
         except Exception as e:
@@ -771,19 +828,40 @@ class Refiner(BaseAgent):
         except FunctionTimedOut as fto:
             is_timeout = True
         
+        # This function analyzes the execution output:
+        # If there’s an error → needs refine
+        # If result empty or has None values → needs refine
+        # If valid rows returned → no refine needed
         is_need = self._is_need_refine(error_info)
         # is_need = False
         if not is_need or is_timeout:  # correct in one pass or refine success or timeout
             message['try_times'] = message.get('try_times', 0) + 1
             message['pred'] = old_sql
             message['send_to'] = SYSTEM_NAME
+        # Call _refine() → builds a new prompt and asks the LLM to generate a corrected SQL.
         else:
             new_sql = self._refine(query, evidence, schema_info, fk_info, error_info)
             message['try_times'] = message.get('try_times', 0) + 1
             message['pred'] = new_sql
             message['fixed'] = True
-            message['send_to'] = REFINER_NAME
-        return
+            message['error_detail'] = error_info.get('sqlite_error', 'Unknown error')
+            try:
+                verify_result = self._execute_sql(new_sql, db_id)
+                if self._is_need_refine(verify_result):
+                # still need refine, keep old sql
+                    message['send_to'] = REFINER_NAME
+                else:
+                    message['send_to'] = SYSTEM_NAME  
+            except FunctionTimedOut:
+                print(f"Refiner execution timed out on SQL: {new_sql}")
+                message['error_detail'] = "Execution timed out"
+                # Decide whether to keep trying or stop. Usually stopping is safer here.
+                message['send_to'] = SYSTEM_NAME
+            except Exception as e:
+                print(f"Refiner execution error: {e}")
+                message['send_to'] = SYSTEM_NAME
+        # print("[DEBUG] Refiner received SQL:", old_sql)  
+        return message.copy()
 
 
 if __name__ == "__main__":

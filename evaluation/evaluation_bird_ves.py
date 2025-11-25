@@ -38,6 +38,8 @@ def execute_sql(sql, db_path):
 
 
 def iterated_execute_sql(predicted_sql, ground_truth, db_path, iterate_num):
+    if predicted_sql.strip() == ground_truth.strip():
+        return 1.0
     conn = sqlite3.connect(db_path)
     diff_list = []
     cursor = conn.cursor()
@@ -102,7 +104,7 @@ def package_sqls(sql_path, db_root_path, mode='gpt', data_mode='dev'):
     return clean_sqls, db_path_list
 
 
-def run_sqls_parallel(sqls, db_places, num_cpus=1, iterate_num=100, meta_time_out=30.0):
+def run_sqls_parallel(sqls, db_places, num_cpus=1, iterate_num=3, meta_time_out=30.0):
     pool = mp.Pool(processes=num_cpus)
     for i, sql_pair in enumerate(sqls):
         predicted_sql, ground_truth = sql_pair

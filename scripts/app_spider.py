@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 import sqlite3
+import os
 
 app = Flask(__name__)
 
@@ -59,7 +60,10 @@ def index():
         database = request.form.get('database')
         sql = request.form.get('sql')
 
-        db_path = f'../data/spider/database/{database}/{database}.sqlite'
+        db_path = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), '..', 'data', 'spider', 'database',
+            database, f'{database}.sqlite'
+        ))
 
         # 执行 SQL 查询
         result = '查询异常'
