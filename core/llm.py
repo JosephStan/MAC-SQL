@@ -2,6 +2,7 @@ import sys
 import json
 import time
 from core.api_config import *
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 MAX_TRY = 5
 
@@ -32,17 +33,36 @@ def init_log_path(my_log_path):
 def api_func(prompt:str):
     global MODEL_NAME
     print(f"\nUse OpenAI model: {MODEL_NAME}\n")
-    if 'Llama' in MODEL_NAME:
+    if MODEL_NAME == 'SQL-Llama-v0.5':
+  
+        model_path = f"/content/{MODEL_NAME}"
+        tokenizer = AutoTokenizer.from_pretrained(model_path)
+        model = AutoModelForCausalLM.from_pretrained(model_path)
+
+        # Encode prompt
+        input_ids = tokenizer.encode(prompt, return_tensors="pt")
+        prompt_tokens = input_ids.shape[1]
+
+        # Generate
+        output = model.generate(input_ids, max_new_tokens=100)
+
+        # Decode full text
+        full_text = tokenizer.decode(output[0], skip_special_tokens=True)
+
+        # Count response tokens (new tokens only)
+        response_tokens = output.shape[1] - prompt_tokens
+        return full_text, prompt_tokens, response_tokens
+    elif 'Llama' in MODEL_NAME:
         openai.api_version = None
         openai.api_type = "open_ai"
         openai.api_key = "EMPTY"
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}]
         )
     else:
-        response = openai.ChatCompletion.create(
-            engine=MODEL_NAME,
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1
         )

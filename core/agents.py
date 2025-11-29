@@ -5,8 +5,8 @@ from func_timeout import func_set_timeout, FunctionTimedOut
 LLM_API_FUC = None
 # try import core.api, if error then import core.llm
 try:
-    from core import api
-    LLM_API_FUC = api.safe_call_llm
+    from core import llm
+    LLM_API_FUC = llm.safe_call_llm
     print(f"Use func from core.api in agents.py")
 except:
     from core import llm
@@ -272,7 +272,7 @@ class Selector(BaseAgent):
                 important_key_id_lst.append(col_id)
 
 
-        db_path = f"{self.data_path}/{db_id}/{db_id}.sqlite"
+        db_path = f"/{self.data_path}/{db_id}/{db_id}.sqlite"
         conn = sqlite3.connect(db_path)
         conn.text_factory = lambda b: b.decode(errors="ignore")  # avoid gbk/utf8 error, copied from sql-eval.exec_eval
         cursor = conn.cursor()
