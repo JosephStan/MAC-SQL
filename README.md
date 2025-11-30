@@ -71,11 +71,104 @@ If occur error `/bin/bash^M: bad interpreter` in Linux, use `sed -i -e 's/\r$//'
 
 We evaluate our method on both BIRD dataset and Spider dataset.
 
-EX: Execution Accuracy(%)
+### Evaluation Metrics
 
-VES: Valid Efficiency Score(%)
+- **EX (Execution Accuracy)**: The proportion of questions where the predicted SQL returns identical results to the ground-truth SQL.
+
+- **VES (Valid Efficiency Score)**: Measures the efficiency of valid SQLs by comparing execution times. Only SQLs that return correct results are considered "valid."
 
 Refer to our paper for the details.
+
+### Running Evaluation
+
+#### 1. Prepare Subsets
+
+To create multiple BIRD subsets for evaluation:
+
+```bash
+# Prepare 10 different subsets from BIRD dev set
+python prepare_bird_subsets.py --input_dev_json ./data/bird/dev.json \
+                               --output_dir ./data/bird/subsets/
+
+# Or prepare a single subset (legacy format)
+python prepare_bird_subset.py --databases california_schools card_games codebase_community
+```
+
+#### 2. Generate Predictions
+
+Run MAC-SQL to generate predictions:
+
+```bash
+python run.py --dataset_name bird \
+              --input_file ./data/bird/dev_subset_8.json \
+              --db_path ./data/bird/dev_databases/ \
+              --tables_json_path ./data/bird/dev_tables.json \
+              --output_file ./outputs/bird_subset_8/output_dev.jsonl
+```
+
+#### 3. Run Evaluation
+
+Evaluate with EX and VES metrics:
+
+```bash
+# Run both EX and VES evaluation
+./evaluate_bird_subset.sh subset_8
+
+# Run only EX evaluation (faster)
+./evaluate_bird_subset.sh subset_8 --no-ves
+
+# Include error analysis
+./evaluate_bird_subset.sh subset_8 --error-analysis
+```
+
+Or use the comprehensive evaluation runner:
+
+```bash
+python ./evaluation/evaluation_runner.py \
+    --dataset bird \
+    --predicted_sql_path ./outputs/bird_subset_8/predict_dev.json \
+    --ground_truth_path ./data/bird/dev_gold_subset_8.sql \
+    --db_root_path ./data/bird/dev_databases/ \
+    --diff_json_path ./data/bird/dev_subset_8.json \
+    --output_dir ./outputs/bird_subset_8/ \
+    --run_ves
+```
+
+#### 4. Error Analysis
+
+Analyze error types based on the 8 categories from the paper:
+
+```bash
+python ./evaluation/error_analysis.py \
+    --eval_result_path ./outputs/bird_subset_8/eval_result_dev.json \
+    --db_root_path ./data/bird/dev_databases/ \
+    --output_path ./outputs/bird_subset_8/error_analysis.json \
+    --dataset_name bird \
+    --sample_size 100 \
+    --generate_chart
+```
+
+Error types include:
+- **Gold Error**: Incorrect ground-truth SQL
+- **Database Misunderstand**: Misunderstanding of DB structure
+- **Semantic Correct**: Correct results but different format
+- **Question Misunderstand**: Logic interpretation errors
+- **Evidence Misunderstand**: Misuse of provided evidence
+- **Dirty Database Values**: Issues with data quality
+- **Schema Linking Error**: Wrong table/column linking
+- **Other**: Uncategorizable errors
+
+#### 5. Generate Visualizations
+
+Create error distribution charts similar to Figure 6 in the paper:
+
+```bash
+python ./evaluation/generate_error_charts.py \
+    --bird_analysis ./outputs/bird_subset_8/error_analysis.json \
+    --spider_analysis ./outputs/spider/error_analysis.json \
+    --output_dir ./outputs/charts/ \
+    --create_comparison
+```
 
 
 ## 🫡Run SQL-Llama
@@ -92,32 +185,45 @@ Then, run `run.sh` to start your local inference.
 ## 🌟 Project Structure
 
 ```txt
-├─data # store datasets and databases
+├─data                            # store datasets and databases
 |  ├─spider
 |  ├─bird
+|  |  ├─subsets/                  # generated subsets for evaluation
 ├─core
-|  ├─agents.py       # define three agents class
-|  ├─api_config.py   # OpenAI API ENV config
-|  ├─chat_manager.py # manage the communication between agents
-|  ├─const.py        # prompt templates and CONST values
-|  ├─llm.py          # api call function and log print
-|  ├─utils.py        # utils function
-├─scripts            # sqlite execution flask demo
+|  ├─agents.py                    # define three agents class
+|  ├─api_config.py                # OpenAI API ENV config
+|  ├─chat_manager.py              # manage the communication between agents
+|  ├─const.py                     # prompt templates and CONST values
+|  ├─llm.py                       # api call function and log print
+|  ├─utils.py                     # utils function
+├─scripts                         # sqlite execution flask demo
 |  ├─app_bird.py
 |  ├─app_spider.py
 |  ├─templates
-├─evaluation # evaluation scripts
-|  ├─evaluation_bird_ex.py
-|  ├─evaluation_bird_ves.py
-|  ├─evaluation_spider.py
+├─evaluation                      # evaluation scripts
+|  ├─evaluation_bird_ex.py        # EX (Execution Accuracy) evaluation
+|  ├─evaluation_bird_ves.py       # VES (Valid Efficiency Score) evaluation
+|  ├─evaluation_spider.py         # Spider dataset evaluation
+|  ├─evaluation_runner.py         # Comprehensive evaluation runner
+|  ├─error_analysis.py            # Error categorization and analysis
+|  ├─generate_error_charts.py     # Visualization of error distributions
+├─outputs                         # evaluation results
+|  ├─bird_subset_8/
+|  |  ├─eval_result_dev.json      # detailed evaluation results
+|  |  ├─ves_result_dev.json       # VES scores
+|  |  ├─error_analysis.json       # error categorization
+|  |  ├─error_analysis_chart.png  # pie chart visualization
 ├─bad_cases
 |  ├─badcase_BIRD(dev)_examples.xlsx
 |  └badcase_Spider(dev)_examples.xlsx
-├─evaluation_bird_ex_ves.sh # bird evaluation script
+├─prepare_bird_subset.py          # prepare single BIRD subset
+├─prepare_bird_subsets.py         # prepare 10 BIRD subsets for evaluation
+├─evaluate_bird_subset.sh         # BIRD subset evaluation script
+├─run_comprehensive_evaluation.sh # run all evaluations
 ├─README.md
 ├─requirements.txt
-├─run.py # main run script
-├─run.sh # generation and evaluation script
+├─run.py                          # main run script
+├─run.sh                          # generation and evaluation script
 ```
 
 
@@ -140,3 +246,4 @@ If you find our work is helpful, please cite as:
 
 
 We welcome contributions and suggestions!
+
