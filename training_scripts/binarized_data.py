@@ -19,8 +19,8 @@ DEFAULT_UNK_TOKEN = "<unk>"
 
 MODEL_MAX_LENGTH = 5000
 
-BASE_MODEL_DIR="/your/path/to/llms_root_dir/CodeLlama-7b-hf"
-DATA_DIR = './data'
+BASE_MODEL_DIR="/content/SQL-Llama-v0.5"
+DATA_DIR = '/content/MAC-SQL/training_scripts/data'
 
 tokenizer = transformers.AutoTokenizer.from_pretrained(
     BASE_MODEL_DIR,
@@ -232,9 +232,9 @@ def construct_and_merge_data(
 
 
 if __name__ == "__main__":
-    DATA_DIR = './data'
+    # DATA_DIR = './data'
     construct_and_merge_data(
         worker = 32,
-        input_data_path=f"{DATA_DIR}/raw/sql-llama-instruct-v0.5.jsonl",
+        input_data_path=f"{DATA_DIR}/raw/spider_error_sql-llama-instruct.jsonl",
         output_data_dir=f"{DATA_DIR}/processed"
     )

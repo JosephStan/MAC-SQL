@@ -17,8 +17,8 @@ echo "GPU INDEX: "$INDEX
 pip install -r requirements.txt
 
 # todo: Set your llms root dir
-llm_root=/your/path/to/llms_root_dir/
-model_name=CodeLlama-7b-hf
+llm_root=/content/
+model_name=SQL-Llama-v0.5
 
 BASE_MODEL_DIR=$llm_root/$model_name
 DATA_DIR=./data
@@ -26,7 +26,7 @@ OUTPUT_DIR=./output
 
 echo $PWD
 
-DATA_PATH=$DATA_DIR/processed/sql-llama-instruct-v0.5.jsonl
+DATA_PATH=$DATA_DIR/processed/spider_error_sql-llama-instruct.jsonl
 LLAMA_MODEL_DIR=$BASE_MODEL_DIR
 
 GPUS_PER_NODE=$(python -c "import torch; print(torch.cuda.device_count());")
@@ -48,14 +48,14 @@ DISTRIBUTED_ARGS="
 MAX_STEPS=1000
 
 DEEPSPEED_CONFIG="configs/default_offload_opt_param.json"
-BATCH_SIZE=32 # 这个只是用来计算 GRAD_ACCU，每次参数更新所用的总数据量即为 Batch_Size大小
+BATCH_SIZE=16 # 这个只是用来计算 GRAD_ACCU，每次参数更新所用的总数据量即为 Batch_Size大小
 MICRO_BATCH_SIZE=1 # 这个才是每张卡实际得到的样本量
 GRAD_ACCU=$(($BATCH_SIZE / $WORLD_SIZE / $MICRO_BATCH_SIZE)) # 按照8卡 bs32计算，GRAD_ACCU=4
 
 LR=2e-5
 WARMUP_RATIO=0.03
 WEIGHT_DECAY=0.0
-MAX_LENGTH=4300 # 这个参数和显存占用有直接关系
+MAX_LENGTH=2048 # 这个参数和显存占用有直接关系
 CKPT_OUTPUT_DIR="$OUTPUT_DIR/macsql-lr${LR}-wr${WARMUP_RATIO}-wd${WEIGHT_DECAY}-bsz${BATCH_SIZE}-maxlen${MAX_LENGTH}/"
 LOG_OUTPUT_DIR="$OUTPUT_DIR/logs/"
 
@@ -73,7 +73,6 @@ torchrun $DISTRIBUTED_ARGS finetuning.py \
     --per_device_train_batch_size ${MICRO_BATCH_SIZE} \
     --gradient_accumulation_steps ${GRAD_ACCU} \
     --per_device_eval_batch_size 4 \
-    --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 200 \
     --save_total_limit 5 \
