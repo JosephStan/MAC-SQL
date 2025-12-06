@@ -22,8 +22,8 @@ relevant tables and columns based on the user question and evidence provided.
 [Instruction]:
 1. ANALYZE the question and evidence carefully.
 2. SELECT only the tables required for the JOIN or SELECT.
-3. SELECT only the columns mentioned in the question or required for JOIN keys.
-4. EXCLUDE all other columns. Do NOT include extra columns "just in case".
+3. SELECT only the columns related to to question.
+4. EXCLUDE all other unrelated columns. 
 5. If a table is not needed, mark it as "drop_all".
 6. The output must be valid JSON.
 
@@ -121,13 +121,20 @@ Your task is to:
 2. Generate a valid SQL query for EACH sub-question.
 3. Combine them into a "Final SQL" at the end.
 
+
+IMPORTANT:
+1. Answer STRICTLY in the format below.
+2. Do NOT output any introductory text, reasoning paragraphs, or "Here is the result".
+3. Just output the Sub questions and SQL.
+
 Follow this format strictly:
 Sub question 1: <reasoning>
-SQL
+<SQL>
 Sub question 2: <reasoning>
-SQL
+<SQL>
 
 Final SQL
+<SQL>
 
 【Constraints】
 - In `SELECT <column>`, just select needed columns in the 【Question】 without any unnecessary column or value
@@ -169,7 +176,6 @@ Decompose the question into sub questions, considering 【Constraints】, and ge
 
 Sub question 1: Get the average value of SAT excellence rate of charter schools.
 
-SQL
 ```sql
 SELECT AVG(CAST(T2.`NumGE1500` AS REAL) / T2.`NumTstTakr`)
     FROM frpm AS T1
@@ -179,7 +185,7 @@ SELECT AVG(CAST(T2.`NumGE1500` AS REAL) / T2.`NumTstTakr`)
 ```
 
 Sub question 2: List out school names of charter schools with an SAT excellence rate over the average (using the result from Sub question 1).
-SQL
+
 ```sql
 SELECT T2.`sname`
   FROM frpm AS T1
@@ -248,7 +254,7 @@ Later birthdate refers to younger age; A11 refers to average salary
 
 Decompose the question into sub questions, considering 【Constraints】, and generate the SQL after thinking step by step:
 Subquestion 1: What is the district_id of the branch with the lowest average salary?
-SQL
+
 ```sql
 SELECT `district_id`
   FROM district
@@ -257,7 +263,7 @@ SELECT `district_id`
 ```
 
 Subquestion 2: What is the youngest client who opened account in the lowest average salary branch?
-SQL
+
 ```sql
 SELECT T1.`client_id`
   FROM client AS T1
@@ -268,7 +274,7 @@ SELECT T1.`client_id`
 ```
 
 Subquestion 3: What is the gender of the youngest client who opened account in the lowest average salary branch?
-SQL
+
 ```sql
 SELECT T1.`gender`
   FROM client AS T1
@@ -313,14 +319,21 @@ Your task is to:
 2. Generate a valid SQL query for EACH sub-question.
 3. Combine them into a "Final SQL" at the end.
 
+IMPORTANT:
+1. Answer STRICTLY in the format below.
+2. Do NOT output any introductory text, reasoning paragraphs, or "Here is the result".
+3. Just output the Sub questions and SQL.
+
+
 Follow this format strictly:
 
 Sub question 1: <first reasoning step>
-SQL
+<SQL>
 Sub question 2: <second reasoning step>
-SQL
+<SQL>
 
 Final SQL
+<SQL>
 
 ==========
 

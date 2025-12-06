@@ -10,9 +10,7 @@ import gradio as gr
 from core.chat_manager import ChatManager
 from core.const import SYSTEM_NAME
 
-# --------------------------------------------------------
 # Configuration for Datasets
-# --------------------------------------------------------
 DATASET_CONFIG = {
     "Spider": {
         "db_root": "./data/spider/database",
@@ -49,9 +47,8 @@ def get_manager(dataset_key="Spider"):
 def get_db_root(dataset_key):
     return DATASET_CONFIG.get(dataset_key, DATASET_CONFIG["Spider"])["db_root"]
 
-# --------------------------------------------------------
 # Helpers
-# --------------------------------------------------------
+
 def load_database_ids(dataset_key):
     db_root = get_db_root(dataset_key)
     if not os.path.exists(db_root):
@@ -112,9 +109,8 @@ def get_database_tables(dataset_key: str, db_id: str):
     except Exception:
         return []
 
-# --------------------------------------------------------
 # New Formatter for Selector
-# --------------------------------------------------------
+
 def format_selector_html(schema_dict):
     if not schema_dict:
         return "<i>No specific schema selected (or Drop All).</i>"
@@ -136,9 +132,8 @@ def format_selector_html(schema_dict):
     html += "</div>"
     return html
 
-# --------------------------------------------------------
 # Parser Logic
-# --------------------------------------------------------
+
 def parse_decomposer_output(decomposer_obj):
     if isinstance(decomposer_obj, str):
         try: decomposer_obj = json.loads(decomposer_obj)
@@ -196,9 +191,8 @@ def check_sql_differences(decomposer_sql: str, refiner_sql: str, dataset_key: st
     
     return result
 
-# --------------------------------------------------------
 # Main Logic
-# --------------------------------------------------------
+
 def run_pipeline(dataset_key, db_id, question):
     manager = get_manager(dataset_key)
     message = {
@@ -251,14 +245,24 @@ def on_submit(dataset_key, db_id, question, history):
         comp_md = (
             "#### Original SQL (from Decomposer)\n"
             f"```sql\n{res['decomposer_sql']}\n```\n"
-            "⬇️ *Refined SQL*\n"
+            f" **Error detected:**\n> {diff['error_message']}\n\n"
+            " *Refined SQL*\n"
+            f"```sql\n{res['final_sql']}\n```"
+        )
+    elif diff["had_errors"]:
+        # Case: Decomposer failed, and Refiner likely failed too or didn't change it enough
+        comp_md = (
+            "#### Original SQL\n"
+            f"```sql\n{res['decomposer_sql']}\n```\n"
+            f" **Error:** {diff['error_message']}\n\n"
+            " *Final SQL*\n"
             f"```sql\n{res['final_sql']}\n```"
         )
     elif res["decomposer_sql"].strip() != res["final_sql"].strip():
         comp_md = (
             "#### Original SQL\n"
             f"```sql\n{res['decomposer_sql']}\n```\n"
-            "⬇️ *Final SQL*\n"
+            " *Final SQL*\n"
             f"```sql\n{res['final_sql']}\n```"
     )
     else:
@@ -269,7 +273,7 @@ def on_submit(dataset_key, db_id, question, history):
         )
     # Text outputs
     decomp_text = "\n\n".join(res["sub_questions"]) if res["sub_questions"] else "No decomposition steps found."
-    
+
     # 1. Pretty Selector Format
     selector_html = format_selector_html(res["schema"])
     
@@ -355,7 +359,7 @@ def main():
                         max_height=400
                     )
                 with gr.Tab("Agent Details"):
-                    with gr.Accordion("Selecter", open=False):
+                    with gr.Accordion("Selector", open=False):
                         # 1. Changed to HTML for pretty format
                         schema_box = gr.HTML()
                     with gr.Accordion("Decomposer", open=True):
